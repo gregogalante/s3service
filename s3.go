@@ -3,6 +3,7 @@ package s3service
 import (
 	"bytes"
 	"errors"
+	"fmt"
 	"mime/multipart"
 	"net/http"
 	"os"
@@ -27,7 +28,7 @@ type S3Service struct {
 }
 
 //connectToS3 - connect to s3
-func (s S3Service) connectToS3() (*session.Session, error) {
+func (s S3Service) connectToS3() *session.Session {
 
 	//connect
 	sess, err := session.NewSession(&aws.Config{
@@ -36,10 +37,11 @@ func (s S3Service) connectToS3() (*session.Session, error) {
 	})
 
 	if err != nil {
-		return sess, err
+		fmt.Println("Connecting to s3 failed")
+		return sess
 	}
 
-	return sess, err
+	return sess
 
 }
 
