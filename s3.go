@@ -27,7 +27,7 @@ type S3Service struct {
 }
 
 //connectToS3 - connect to s3
-func (s S3Service) connectToS3() (*session.Session, err) {
+func (s S3Service) connectToS3() (*session.Session, error) {
 
 	//connect
 	sess, err := session.NewSession(&aws.Config{
