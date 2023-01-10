@@ -160,6 +160,7 @@ func (s S3Service) Delete(path string) (bool, error) {
 	return true, err
 }
 
+// ListBucket lists all the files in a bucket
 func (s S3Service) ListBucket() ([]string, error) {
 	svc := s3.New(s.connectToS3())
 	resp, err := svc.ListObjects(&s3.ListObjectsInput{Bucket: aws.String(s.Bucket)})
@@ -171,4 +172,17 @@ func (s S3Service) ListBucket() ([]string, error) {
 		files = append(files, *key.Key)
 	}
 	return files, nil
+}
+
+// CheckObjectExists checks if an object exists in a bucket
+func (s S3Service) CheckObjectExists(path string) (bool, error) {
+	svc := s3.New(s.connectToS3())
+	_, err := svc.HeadObject(&s3.HeadObjectInput{
+		Bucket: aws.String(s.Bucket),
+		Key:    aws.String(path),
+	})
+	if err != nil {
+		return false, err
+	}
+	return true, nil
 }
