@@ -1,4 +1,4 @@
-module github.com/rahulshibu/s3service
+module github.com/gregogalante/s3service
 
 go 1.13
 
