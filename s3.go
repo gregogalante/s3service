@@ -159,3 +159,16 @@ func (s S3Service) Delete(path string) (bool, error) {
 
 	return true, err
 }
+
+func (s S3Service) ListBucket() ([]string, error) {
+	svc := s3.New(s.connectToS3())
+	resp, err := svc.ListObjects(&s3.ListObjectsInput{Bucket: aws.String(s.Bucket)})
+	if err != nil {
+		return nil, err
+	}
+	var files []string
+	for _, key := range resp.Contents {
+		files = append(files, *key.Key)
+	}
+	return files, nil
+}
