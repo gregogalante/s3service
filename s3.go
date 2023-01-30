@@ -86,9 +86,7 @@ func (s S3Service) UploadAsBuffer(file *bytes.Buffer, path string) (string, erro
 
 	buffer := make([]byte, file.Len())
 	file.Read(buffer)
-	// config settings: this is where you choose the bucket,
-	// filename, content-type and storage class of the file
-	// you're uploading
+
 	_, err := s3.New(s.connectToS3()).PutObject(&s3.PutObjectInput{
 		Bucket:               aws.String(s.Bucket),
 		Key:                  aws.String(path),
@@ -107,39 +105,64 @@ func (s S3Service) UploadAsBuffer(file *bytes.Buffer, path string) (string, erro
 	return path, err
 }
 
-// Upload saves a file to aws bucket and returns the url to // the file and an error if there's any
-func (s S3Service) UploadMultipart(file multipart.File, fileHeader *multipart.FileHeader, folder string, maxSize int64) (string, error) {
-	// get the file size and read
-	// the file content into a buffer
-	size := fileHeader.Size
-	if maxSize < fileHeader.Size {
-		return "", errors.New("File size should be less than " + string(maxSize))
-	}
-	buffer := make([]byte, size)
-	file.Read(buffer)
-	uuid, _ := uuid.NewRandom()
-	// create a unique file name for the file
-	tempFileName := folder + "/" + uuid.String() + filepath.Ext(fileHeader.Filename)
+// Upload saves a file to aws bucket with multipart upload and returns the url to // the file and an error if there's any
+func (s S3Service) UploadAsMultipart(file *bytes.Buffer, path string) (string, error) {
 
-	// config settings: this is where you choose the bucket,
-	// filename, content-type and storage class of the file
-	// you're uploading
-	_, err := s3.New(s.connectToS3()).PutObject(&s3.PutObjectInput{
+	buffer = make([]byte, file.Len())
+	file.Read(buffer)
+	
+	// Create a multipart upload request
+	req, _ := s3.New(s.connectToS3()).CreateMultipartUpload(&s3.CreateMultipartUploadInput{
 		Bucket:               aws.String(s.Bucket),
-		Key:                  aws.String(tempFileName),
+		Key:                  aws.String(path),
 		ACL:                  aws.String("public-read"), // could be private if you want it to be access by only authorized users
 		Body:                 bytes.NewReader(buffer),
-		ContentLength:        aws.Int64(int64(size)),
 		ContentType:          aws.String(http.DetectContentType(buffer)),
 		ContentDisposition:   aws.String("attachment"),
 		ServerSideEncryption: aws.String("AES256"),
 		StorageClass:         aws.String("STANDARD"),
+		// ContentLength:        aws.Int64(int64(file.Len())),
+	})
+
+	// Upload the file in parts
+	partSize := int64(5 * 1024 * 1024) // 5MB
+	bufferSize := int64(5 * 1024 * 1024)
+	buffer := make([]byte, bufferSize)
+	bytesRead := 0
+	var parts []*s3.CompletedPart
+	for bytesRead < len(buffer) {
+		bytesRead += copy(buffer, buffer[bytesRead:])
+		// Upload a part
+		result, err := s3.New(s.connectToS3()).UploadPart(&s3.UploadPartInput{
+			Bucket:     aws.String(s.Bucket),
+			Key:        aws.String(path),
+			PartNumber: aws.Int64(int64(len(parts) + 1)),
+			UploadId:   req.UploadId,
+			Body:       bytes.NewReader(buffer),
+		})
+		if err != nil {
+			return "", err
+		}
+		parts = append(parts, &s3.CompletedPart{
+			ETag:       result.ETag,
+			PartNumber: aws.Int64(int64(len(parts) + 1)),
+		})
+	}
+
+	// Complete the multipart upload
+	_, err := s3.New(s.connectToS3()).CompleteMultipartUpload(&s3.CompleteMultipartUploadInput{
+		Bucket:   aws.String(s.Bucket),
+		Key:      aws.String(path),
+		UploadId: req.UploadId,
+		MultipartUpload: &s3.CompletedMultipartUpload{
+			Parts: parts,
+		},
 	})
 	if err != nil {
 		return "", err
 	}
 
-	return tempFileName, err
+	return path, err
 }
 
 // Delete deletes a file to aws bucket and returns  an error if there's any
