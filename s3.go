@@ -108,7 +108,7 @@ func (s S3Service) UploadAsBuffer(file *bytes.Buffer, path string) (string, erro
 // Upload saves a file to aws bucket with multipart upload and returns the url to // the file and an error if there's any
 func (s S3Service) UploadAsMultipart(file *bytes.Buffer, path string) (string, error) {
 
-	buffer = make([]byte, file.Len())
+	buffer := make([]byte, file.Len())
 	file.Read(buffer)
 	
 	// Create a multipart upload request
@@ -116,7 +116,6 @@ func (s S3Service) UploadAsMultipart(file *bytes.Buffer, path string) (string, e
 		Bucket:               aws.String(s.Bucket),
 		Key:                  aws.String(path),
 		ACL:                  aws.String("public-read"), // could be private if you want it to be access by only authorized users
-		Body:                 bytes.NewReader(buffer),
 		ContentType:          aws.String(http.DetectContentType(buffer)),
 		ContentDisposition:   aws.String("attachment"),
 		ServerSideEncryption: aws.String("AES256"),
@@ -125,9 +124,8 @@ func (s S3Service) UploadAsMultipart(file *bytes.Buffer, path string) (string, e
 	})
 
 	// Upload the file in parts
-	partSize := int64(5 * 1024 * 1024) // 5MB
 	bufferSize := int64(5 * 1024 * 1024)
-	buffer := make([]byte, bufferSize)
+	buffer = make([]byte, bufferSize)
 	bytesRead := 0
 	var parts []*s3.CompletedPart
 	for bytesRead < len(buffer) {
