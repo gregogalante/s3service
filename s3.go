@@ -102,9 +102,13 @@ func (s S3Service) UploadAsBuffer(file *bytes.Buffer, path string) (string, erro
 
 // Upload saves a file to aws bucket with multipart upload and returns the url to // the file and an error if there's any
 func (s S3Service) UploadAsMultipart(file *bytes.Buffer, path string) (string, error) {
-	// there is bug right now where only the first buffer is uploaded, so we need to fix this
+	// get length of file in bytes
+	lengthFile := file.Len()
+	fmt.Println("lengthFile", lengthFile)
+
 	buffer := make([]byte, file.Len())
 	file.Read(buffer)
+	// get the file size in bytes
 
 	// Create a multipart upload request
 	req, _ := s3.New(s.connectToS3()).CreateMultipartUpload(&s3.CreateMultipartUploadInput{
@@ -128,6 +132,7 @@ func (s S3Service) UploadAsMultipart(file *bytes.Buffer, path string) (string, e
 	fmt.Println("file.Len()", file.Len())
 	fmt.Println("len(buffer)", len(buffer))
 	fmt.Println("len(buffer)", len(buffer))
+
 	index := 0
 	for bytesRead < len(buffer) {
 		index += 1
