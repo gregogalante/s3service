@@ -124,7 +124,14 @@ func (s S3Service) UploadAsMultipart(file *bytes.Buffer, path string) (string, e
 	buffer = make([]byte, bufferSize)
 	bytesRead := 0
 	var parts []*s3.CompletedPart
-	for bytesRead < file.Len() {
+	fmt.Println("INIT")
+	fmt.Println("file.Len()", file.Len())
+	fmt.Println("len(buffer)", len(buffer))
+	fmt.Println("len(buffer)", len(buffer))
+	index := 0
+	for bytesRead < len(buffer) {
+		index += 1
+		fmt.Println("index", index)
 		bytesRead += copy(buffer, buffer[bytesRead:])
 		// Upload a part
 		result, err := s3.New(s.connectToS3()).UploadPart(&s3.UploadPartInput{
@@ -142,6 +149,7 @@ func (s S3Service) UploadAsMultipart(file *bytes.Buffer, path string) (string, e
 			PartNumber: aws.Int64(int64(len(parts) + 1)),
 		})
 	}
+	fmt.Println("END")
 
 	// Complete the multipart upload
 	_, err := s3.New(s.connectToS3()).CompleteMultipartUpload(&s3.CompleteMultipartUploadInput{
