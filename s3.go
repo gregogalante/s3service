@@ -14,7 +14,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
 )
 
-//S3Service - s3 service
+// S3Service - s3 service
 type S3Service struct {
 	Region          string
 	AccessKeyID     string
@@ -23,7 +23,7 @@ type S3Service struct {
 	Bucket          string
 }
 
-//connectToS3 - connect to s3
+// connectToS3 - connect to s3
 func (s S3Service) connectToS3() *session.Session {
 
 	//connect
@@ -41,7 +41,7 @@ func (s S3Service) connectToS3() *session.Session {
 
 }
 
-//DownloadFile - download file from s3 to temp folder
+// DownloadFile - download file from s3 to temp folder
 func (s S3Service) DownloadFile(filePath string) (string, error) {
 
 	downloader := s3manager.NewDownloader(s.connectToS3())
@@ -79,7 +79,6 @@ func (s S3Service) DownloadFile(filePath string) (string, error) {
 
 // Upload saves a file to aws bucket and returns the url to // the file and an error if there's any
 func (s S3Service) UploadAsBuffer(file *bytes.Buffer, path string) (string, error) {
-
 	buffer := make([]byte, file.Len())
 	file.Read(buffer)
 
@@ -103,10 +102,10 @@ func (s S3Service) UploadAsBuffer(file *bytes.Buffer, path string) (string, erro
 
 // Upload saves a file to aws bucket with multipart upload and returns the url to // the file and an error if there's any
 func (s S3Service) UploadAsMultipart(file *bytes.Buffer, path string) (string, error) {
-
+	// there is bug right now where only the first buffer is uploaded, so we need to fix this
 	buffer := make([]byte, file.Len())
 	file.Read(buffer)
-	
+
 	// Create a multipart upload request
 	req, _ := s3.New(s.connectToS3()).CreateMultipartUpload(&s3.CreateMultipartUploadInput{
 		Bucket:               aws.String(s.Bucket),
@@ -116,6 +115,7 @@ func (s S3Service) UploadAsMultipart(file *bytes.Buffer, path string) (string, e
 		ContentDisposition:   aws.String("attachment"),
 		ServerSideEncryption: aws.String("AES256"),
 		StorageClass:         aws.String("STANDARD"),
+
 		// ContentLength:        aws.Int64(int64(file.Len())),
 	})
 
@@ -124,7 +124,7 @@ func (s S3Service) UploadAsMultipart(file *bytes.Buffer, path string) (string, e
 	buffer = make([]byte, bufferSize)
 	bytesRead := 0
 	var parts []*s3.CompletedPart
-	for bytesRead < len(buffer) {
+	for bytesRead < file.Len() {
 		bytesRead += copy(buffer, buffer[bytesRead:])
 		// Upload a part
 		result, err := s3.New(s.connectToS3()).UploadPart(&s3.UploadPartInput{
