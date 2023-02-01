@@ -123,37 +123,38 @@ func (s S3Service) UploadAsMultipart(file *bytes.Buffer, path string) (string, e
 		// ContentLength:        aws.Int64(int64(file.Len())),
 	})
 
-	// Upload the file in parts
-	bufferSize := int64(5 * 1024 * 1024)
-	lastPartSize := int64(lengthFile % int(bufferSize))
-	fmt.Println("lastPartSize", lastPartSize)
-	if lastPartSize == 0 {
-		lastPartSize = bufferSize
+	// Split the file into 5MB parts, caring about the last part being smaller than 5MB
+	parts := make([][]byte, 0)
+	for i := 0; i < lengthFile; i += 5 * 1024 * 1024 {
+		end := i + 5*1024*1024
+		if end > lengthFile {
+			end = lengthFile
+		}
+		parts = append(parts, buffer[i:end])
 	}
-	buffer = make([]byte, bufferSize)
-	buffer = buffer[:lastPartSize]
+
 	bytesRead := 0
-	var parts []*s3.CompletedPart
+	var completed_parts []*s3.CompletedPart
 
 	index := 0
 	for bytesRead < lengthFile {
-		index += 1
-		fmt.Println("index, bytesRead, lengthFile, buffer", index, bytesRead, lengthFile, len(buffer))
-		bytesRead += len(buffer)
+		fmt.Println("index, bytesRead, lengthFile, len(parts[index])", index, bytesRead, lengthFile, len(parts[index]))
+		bytesRead += len(parts[index])
 		// Upload a part
 		result, err := s3.New(s.connectToS3()).UploadPart(&s3.UploadPartInput{
 			Bucket:     aws.String(s.Bucket),
 			Key:        aws.String(path),
-			PartNumber: aws.Int64(int64(len(parts) + 1)),
+			PartNumber: aws.Int64(int64(len(completed_parts) + 1)),
 			UploadId:   req.UploadId,
-			Body:       bytes.NewReader(buffer),
+			Body:       bytes.NewReader(parts[index]),
 		})
+		index += 1
 		if err != nil {
 			return "", err
 		}
-		parts = append(parts, &s3.CompletedPart{
+		completed_parts = append(completed_parts, &s3.CompletedPart{
 			ETag:       result.ETag,
-			PartNumber: aws.Int64(int64(len(parts) + 1)),
+			PartNumber: aws.Int64(int64(len(completed_parts) + 1)),
 		})
 	}
 	fmt.Println("END")
@@ -164,7 +165,7 @@ func (s S3Service) UploadAsMultipart(file *bytes.Buffer, path string) (string, e
 		Key:      aws.String(path),
 		UploadId: req.UploadId,
 		MultipartUpload: &s3.CompletedMultipartUpload{
-			Parts: parts,
+			Parts: completed_parts,
 		},
 	})
 	if err != nil {
