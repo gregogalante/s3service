@@ -131,10 +131,9 @@ func (s S3Service) UploadAsMultipart(file *bytes.Buffer, path string) (string, e
 	fmt.Println("INIT")
 	fmt.Println("file.Len()", file.Len())
 	fmt.Println("len(buffer)", len(buffer))
-	fmt.Println("len(buffer)", len(buffer))
 
 	index := 0
-	for bytesRead < len(buffer) {
+	for bytesRead < lengthFile {
 		index += 1
 		fmt.Println("index", index)
 		bytesRead += copy(buffer, buffer[bytesRead:])
