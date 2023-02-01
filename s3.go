@@ -125,12 +125,15 @@ func (s S3Service) UploadAsMultipart(file *bytes.Buffer, path string) (string, e
 
 	// Upload the file in parts
 	bufferSize := int64(5 * 1024 * 1024)
+	lastPartSize := int64(lengthFile % int(bufferSize))
+	fmt.Println("lastPartSize", lastPartSize)
+	if lastPartSize == 0 {
+		lastPartSize = bufferSize
+	}
 	buffer = make([]byte, bufferSize)
+	buffer = buffer[:lastPartSize]
 	bytesRead := 0
 	var parts []*s3.CompletedPart
-	fmt.Println("INIT")
-	fmt.Println("file.Len()", file.Len())
-	fmt.Println("len(buffer)", len(buffer))
 
 	index := 0
 	for bytesRead < lengthFile {
