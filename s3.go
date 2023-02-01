@@ -136,7 +136,7 @@ func (s S3Service) UploadAsMultipart(file *bytes.Buffer, path string) (string, e
 	for bytesRead < lengthFile {
 		index += 1
 		fmt.Println("index, bytesRead, lengthFile", index, bytesRead, lengthFile)
-		bytesRead += copy(buffer, buffer[bytesRead:])
+		bytesRead += len(buffer)
 		// Upload a part
 		result, err := s3.New(s.connectToS3()).UploadPart(&s3.UploadPartInput{
 			Bucket:     aws.String(s.Bucket),
