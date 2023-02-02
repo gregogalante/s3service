@@ -106,6 +106,10 @@ func (s S3Service) UploadAsMultipart(file *bytes.Buffer, path string) (string, e
 	lengthFile := file.Len()
 	fmt.Println("lengthFile", lengthFile)
 
+	if lengthFile == 0 {
+		return "", nil
+	}
+
 	buffer := make([]byte, file.Len())
 	file.Read(buffer)
 	// get the file size in bytes
